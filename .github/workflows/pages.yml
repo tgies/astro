@@ -64,20 +64,21 @@ jobs:
           curl -sfL -o _site/seabios.bin "https://raw.githubusercontent.com/copy/v86/master/bios/seabios.bin"
           curl -sfL -o _site/vgabios.bin "https://raw.githubusercontent.com/copy/v86/master/bios/vgabios.bin"
 
-      - name: Download boot floppy from latest release
+      - name: Download disk images from latest release
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          gh release download --pattern "dos6retail-boot.img" --dir _site/
+          gh release download --pattern "dos6retail-boot.img" --pattern "dos6retail.raw.img" --dir _site/
 
       - name: Build source tree disk image
         run: |
           timeout 300 ./mkbuildimg.sh -o _site/dos6-build.img
 
-      - name: Copy site files and inject image size
+      - name: Copy site files and inject image sizes
         run: |
-          IMG_SIZE=$(stat -c%s _site/dos6-build.img)
-          sed "s/DOS6_BUILD_IMG_SIZE/${IMG_SIZE}/" docs/index.html > _site/index.html
+          BUILD_SIZE=$(stat -c%s _site/dos6-build.img)
+          INSTALL_SIZE=$(stat -c%s _site/dos6retail.raw.img)
+          sed "s/DOS6_BUILD_IMG_SIZE/${BUILD_SIZE}/;s/DOS6_INSTALL_IMG_SIZE/${INSTALL_SIZE}/" docs/index.html > _site/index.html
 
       - name: Upload Pages artifact
         uses: actions/upload-pages-artifact@v3

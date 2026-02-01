@@ -101,6 +101,7 @@
 
     <div class="mode-toggle">
         <a id="mode-boot" href="?">Boot floppy</a>
+        <a id="mode-install" href="?mode=install">Full install</a>
         <a id="mode-build" href="?mode=build">Build environment</a>
     </div>
 
@@ -126,8 +127,12 @@
             <a href="https://github.com/tgies/astro/releases">release</a>.
         </p>
         <p>
-            There are two modes. <b>Boot floppy</b> boots a minimal 1.44MB DOS floppy
+            There are three modes. <b>Boot floppy</b> boots a minimal 1.44MB DOS floppy
             with just IO.SYS, MSDOS.SYS, and COMMAND.COM from the build artifacts.
+        </p>
+        <p>
+            <b>Full install</b> boots a hard disk image with DOS 6 installed,
+            including all the standard utilities.
         </p>
         <p>
             <b>Build environment</b> boots a hard disk image that also contains the
@@ -142,10 +147,11 @@
     "use strict";
 
     const params = new URLSearchParams(location.search);
-    const buildMode = params.get("mode") === "build";
+    const mode = params.get("mode");
 
     // Highlight active mode tab
-    document.getElementById(buildMode ? "mode-build" : "mode-boot").classList.add("active");
+    const modeId = mode === "build" ? "mode-build" : mode === "install" ? "mode-install" : "mode-boot";
+    document.getElementById(modeId).classList.add("active");
 
     const statusEl = document.getElementById("status");
 
@@ -162,17 +168,18 @@
 
     async function boot() {
         try {
-            setStatus("Downloading BIOS" + (buildMode ? "..." : " and disk image..."));
+            setStatus("Downloading BIOS" + (mode ? "..." : " and disk image..."));
 
             const biosPromise = Promise.all([
                 fetchBinary("seabios.bin"),
                 fetchBinary("vgabios.bin"),
             ]);
 
+            const [bios, vgaBios] = await biosPromise;
+
             let diskConfig;
-            if (buildMode) {
+            if (mode === "build") {
                 // Build environment: 250MB HD image loaded on demand
-                const [bios, vgaBios] = await biosPromise;
                 setStatus("Booting MS-DOS 6 (build environment)...");
                 diskConfig = {
                     wasm_path: "v86.wasm",
@@ -184,9 +191,21 @@
                     hda: { url: "dos6-build.img", async: true, size: DOS6_BUILD_IMG_SIZE },
                     autostart: true,
                 };
+            } else if (mode === "install") {
+                // Full install: HD image loaded on demand
+                setStatus("Booting MS-DOS 6 (full install)...");
+                diskConfig = {
+                    wasm_path: "v86.wasm",
+                    memory_size: 16 * 1024 * 1024,
+                    vga_memory_size: 2 * 1024 * 1024,
+                    screen_container: document.getElementById("screen_container"),
+                    bios: { buffer: bios },
+                    vga_bios: { buffer: vgaBios },
+                    hda: { url: "dos6retail.raw.img", async: true, size: DOS6_INSTALL_IMG_SIZE },
+                    autostart: true,
+                };
             } else {
                 // Boot floppy: small image loaded in full
-                const [bios, vgaBios] = await biosPromise;
                 const floppy = await fetchBinary("dos6retail-boot.img");
                 setStatus("Booting MS-DOS 6...");
                 diskConfig = {
