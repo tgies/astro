@@ -77,12 +77,9 @@
         <a href="https://github.com/tgies/astro/releases" style="color: #6ea8d9;">release</a>.
     </div>
 
+    <script src="libv86.js"></script>
     <script>
     "use strict";
-
-    const REPO = "tgies/astro";
-    const V86_REPO = "copy/v86";
-    const V86_TAG = "latest";
 
     const statusEl = document.getElementById("status");
 
@@ -97,56 +94,20 @@
         return resp.arrayBuffer();
     }
 
-    async function getReleaseAssetUrl(repo, tag, assetName) {
-        const url = tag
-            ? `https://api.github.com/repos/${repo}/releases/tags/${tag}`
-            : `https://api.github.com/repos/${repo}/releases/latest`;
-        const resp = await fetch(url);
-        if (!resp.ok) throw new Error(`Failed to fetch release for ${repo}: ${resp.status}`);
-        const release = await resp.json();
-        const asset = release.assets.find(a => a.name === assetName);
-        if (!asset) throw new Error(`Asset ${assetName} not found in release ${release.tag_name}`);
-        return asset.browser_download_url;
-    }
-
     async function boot() {
         try {
-            setStatus("Fetching release info...");
-
-            // Get URLs for v86 build files and our floppy image
-            const [v86JsUrl, v86WasmUrl, floppyUrl] = await Promise.all([
-                getReleaseAssetUrl(V86_REPO, V86_TAG, "libv86.js"),
-                getReleaseAssetUrl(V86_REPO, V86_TAG, "v86.wasm"),
-                getReleaseAssetUrl(REPO, null, "dos6retail-boot.img"),
-            ]);
-
-            setStatus("Downloading v86 emulator...");
-
-            // Load v86 JS
-            await new Promise((resolve, reject) => {
-                const script = document.createElement("script");
-                script.src = v86JsUrl;
-                script.onload = resolve;
-                script.onerror = () => reject(new Error("Failed to load v86"));
-                document.head.appendChild(script);
-            });
-
             setStatus("Downloading BIOS and disk image...");
 
-            // Fetch BIOS files and floppy image in parallel
             const [bios, vgaBios, floppy] = await Promise.all([
-                fetchBinary("https://raw.githubusercontent.com/copy/v86/master/bios/seabios.bin"),
-                fetchBinary("https://raw.githubusercontent.com/copy/v86/master/bios/vgabios.bin"),
-                fetchBinary(floppyUrl),
+                fetchBinary("seabios.bin"),
+                fetchBinary("vgabios.bin"),
+                fetchBinary("dos6retail-boot.img"),
             ]);
 
             setStatus("Booting MS-DOS 6...");
 
             const emulator = new V86({
-                wasm_fn: async () => {
-                    const resp = await fetch(v86WasmUrl);
-                    return WebAssembly.compile(await resp.arrayBuffer());
-                },
+                wasm_path: "v86.wasm",
                 memory_size: 16 * 1024 * 1024,
                 vga_memory_size: 2 * 1024 * 1024,
                 screen_container: document.getElementById("screen_container"),

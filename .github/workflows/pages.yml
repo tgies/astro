@@ -1,0 +1,56 @@
+name: Deploy GitHub Pages
+
+on:
+  release:
+    types: [published]
+  workflow_dispatch:
+
+permissions:
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: true
+
+jobs:
+  deploy:
+    runs-on: ubuntu-24.04
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Download v86 assets
+        run: |
+          mkdir -p _site
+          # v86's only release is tagged "latest" but marked prerelease
+          V86_TAG="latest"
+          V86_API="https://api.github.com/repos/copy/v86/releases/tags/${V86_TAG}"
+          RELEASE_JSON=$(curl -sf "$V86_API")
+          echo "$RELEASE_JSON" | jq -r '.assets[] | select(.name == "libv86.js") | .browser_download_url' | xargs curl -sfL -o _site/libv86.js
+          echo "$RELEASE_JSON" | jq -r '.assets[] | select(.name == "v86.wasm") | .browser_download_url' | xargs curl -sfL -o _site/v86.wasm
+
+      - name: Download BIOS files
+        run: |
+          curl -sfL -o _site/seabios.bin "https://raw.githubusercontent.com/copy/v86/master/bios/seabios.bin"
+          curl -sfL -o _site/vgabios.bin "https://raw.githubusercontent.com/copy/v86/master/bios/vgabios.bin"
+
+      - name: Download boot floppy from latest release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release download --pattern "dos6retail-boot.img" --dir _site/
+
+      - name: Copy site files
+        run: cp docs/index.html _site/
+
+      - name: Upload Pages artifact
+        uses: actions/upload-pages-artifact@v3
+
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
