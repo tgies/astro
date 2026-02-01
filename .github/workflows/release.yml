@@ -73,6 +73,7 @@ jobs:
           cp binaries/io.sys io.sys
           cp binaries/msdos.sys msdos.sys
           cp binaries/command.com command.com
+          cp binaries/sys.com sys.com
 
       - name: Set release version
         id: version
@@ -98,4 +99,5 @@ jobs:
             dos6oem-boot.img \
             io.sys \
             msdos.sys \
-            command.com
+            command.com \
+            sys.com

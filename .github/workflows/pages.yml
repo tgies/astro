@@ -40,11 +40,13 @@ jobs:
             mkdir -p bootstrap
             gh release download "$tag" \
               --pattern "io.sys" --pattern "msdos.sys" --pattern "command.com" \
+              --pattern "sys.com" \
               --dir bootstrap/
             cd bootstrap
             mv io.sys IO.SYS
             mv msdos.sys MSDOS.SYS
             mv command.com COMMAND.COM
+            mv sys.com SYS.COM
             cd ..
           fi
 

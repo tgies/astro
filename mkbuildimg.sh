@@ -102,13 +102,15 @@ cp "$MSDOS_SYS" "$STAGING/MSDOS.SYS"
 cp "$COMMAND_COM" "$STAGING/COMMAND.COM"
 
 # Need SYS.COM to transfer system to target drive
-# Try build output first, then bootstrap
 if [ -f "$SCRIPT_DIR/binaries/sys.com" ]; then
     cp "$SCRIPT_DIR/binaries/sys.com" "$STAGING/DOS/SYS.COM"
 elif [ -f "$SCRIPT_DIR/cmd/sys/sys.com" ]; then
     cp "$SCRIPT_DIR/cmd/sys/sys.com" "$STAGING/DOS/SYS.COM"
+elif [ -f "$SCRIPT_DIR/bootstrap/SYS.COM" ]; then
+    cp "$SCRIPT_DIR/bootstrap/SYS.COM" "$STAGING/DOS/SYS.COM"
 else
-    echo "ERROR: SYS.COM not found. Run the build first." >&2
+    echo "ERROR: SYS.COM not found. Run the build first," >&2
+    echo "or place SYS.COM in the bootstrap/ directory." >&2
     exit 1
 fi
 
