@@ -72,10 +72,28 @@
             max-width: 640px;
             line-height: 1.5;
         }
+        .info a { color: #6ea8d9; text-decoration: none; }
+        .info a:hover { text-decoration: underline; }
+        .description {
+            margin-top: 1.5rem;
+            font-size: 0.85rem;
+            color: #aaa;
+            max-width: 640px;
+            line-height: 1.6;
+        }
+        .description a { color: #6ea8d9; text-decoration: none; }
+        .description a:hover { text-decoration: underline; }
+        .description p { margin-bottom: 0.75rem; }
+        .description code {
+            background: #2a2a3e;
+            padding: 0.1rem 0.35rem;
+            border-radius: 3px;
+            font-size: 0.8rem;
+        }
     </style>
 </head>
 <body>
-    <h1>MS-DOS 6.0</h1>
+    <h1>MS-DOS 6</h1>
     <p class="subtitle">
         Built from source &mdash;
         <a href="https://github.com/tgies/astro">github.com/tgies/astro</a>
@@ -95,9 +113,28 @@
 
     <div class="info">
         Click the screen to capture keyboard input. Press Escape to release.<br>
-        Powered by <a href="https://github.com/copy/v86" style="color: #6ea8d9;">v86</a>.
-        Boot image from the latest
-        <a href="https://github.com/tgies/astro/releases" style="color: #6ea8d9;">release</a>.
+        Powered by <a href="https://github.com/copy/v86">v86</a>.
+    </div>
+
+    <div class="description">
+        <p>
+            What you're seeing is a running copy of MS-DOS 6,
+            <a href="https://github.com/tgies/astro/actions/workflows/build.yml">built from source</a>
+            by GitHub Actions from the
+            <a href="https://github.com/tgies/astro">leaked Microsoft source code</a>.
+            The disk images are from the latest
+            <a href="https://github.com/tgies/astro/releases">release</a>.
+        </p>
+        <p>
+            There are two modes. <b>Boot floppy</b> boots a minimal 1.44MB DOS floppy
+            with just IO.SYS, MSDOS.SYS, and COMMAND.COM from the build artifacts.
+        </p>
+        <p>
+            <b>Build environment</b> boots a hard disk image that also contains the
+            full source tree, so you can build MS-DOS 6 from source inside the
+            MS-DOS 6 built from that source. Just type
+            <code>BUILDALL USA</code>.
+        </p>
     </div>
 
     <script src="libv86.js"></script>
