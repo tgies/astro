@@ -4,8 +4,8 @@ on:
   workflow_dispatch:
     inputs:
       version:
-        description: 'Release version (e.g. v1.0)'
-        required: true
+        description: 'Release tag (default: short commit SHA)'
+        required: false
         type: string
 
 permissions:
@@ -45,12 +45,21 @@ jobs:
           cd binaries && zip -r ../dos6-binaries.zip . && cd ..
           cd compress && zip -r ../dos6-compressed.zip . && cd ..
 
+      - name: Set release version
+        id: version
+        run: |
+          if [ -n "${{ inputs.version }}" ]; then
+            echo "tag=${{ inputs.version }}" >> "$GITHUB_OUTPUT"
+          else
+            echo "tag=$(git rev-parse --short HEAD)" >> "$GITHUB_OUTPUT"
+          fi
+
       - name: Create GitHub Release
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          gh release create "${{ inputs.version }}" \
-            --title "MS-DOS 6 ${{ inputs.version }}" \
+          gh release create "${{ steps.version.outputs.tag }}" \
+            --title "MS-DOS 6 ${{ steps.version.outputs.tag }}" \
             --generate-notes \
             dos6-binaries.zip \
             dos6-compressed.zip \
