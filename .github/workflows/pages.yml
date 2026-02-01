@@ -24,10 +24,33 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
+      - name: Install dosemu2 and mtools
+        run: |
+          sudo add-apt-repository -y ppa:dosemu2/ppa
+          sudo apt-get update
+          sudo apt-get install -y dosemu2 mtools
+
+      - name: Download bootstrap files
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          if [ -f .bootstrap-release ]; then
+            tag="$(cat .bootstrap-release)"
+            echo "Downloading bootstrap files from release $tag..."
+            mkdir -p bootstrap
+            gh release download "$tag" \
+              --pattern "io.sys" --pattern "msdos.sys" --pattern "command.com" \
+              --dir bootstrap/
+            cd bootstrap
+            mv io.sys IO.SYS
+            mv msdos.sys MSDOS.SYS
+            mv command.com COMMAND.COM
+            cd ..
+          fi
+
       - name: Download v86 assets
         run: |
           mkdir -p _site
-          # v86's only release is tagged "latest" but marked prerelease
           V86_TAG="latest"
           V86_API="https://api.github.com/repos/copy/v86/releases/tags/${V86_TAG}"
           RELEASE_JSON=$(curl -sf "$V86_API")
@@ -45,8 +68,14 @@ jobs:
         run: |
           gh release download --pattern "dos6retail-boot.img" --dir _site/
 
-      - name: Copy site files
-        run: cp docs/index.html _site/
+      - name: Build source tree disk image
+        run: |
+          timeout 300 ./mkbuildimg.sh -o _site/dos6-build.img
+
+      - name: Copy site files and inject image size
+        run: |
+          IMG_SIZE=$(stat -c%s _site/dos6-build.img)
+          sed "s/DOS6_BUILD_IMG_SIZE/${IMG_SIZE}/" docs/index.html > _site/index.html
 
       - name: Upload Pages artifact
         uses: actions/upload-pages-artifact@v3

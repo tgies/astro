@@ -27,6 +27,24 @@
         }
         .subtitle a { color: #6ea8d9; text-decoration: none; }
         .subtitle a:hover { text-decoration: underline; }
+        .mode-toggle {
+            margin-bottom: 1rem;
+            font-size: 0.85rem;
+        }
+        .mode-toggle a {
+            color: #6ea8d9;
+            text-decoration: none;
+            padding: 0.3rem 0.8rem;
+            border: 1px solid #333;
+            border-radius: 3px;
+            margin: 0 0.25rem;
+        }
+        .mode-toggle a:hover { border-color: #6ea8d9; }
+        .mode-toggle a.active {
+            background: #6ea8d9;
+            color: #1a1a2e;
+            border-color: #6ea8d9;
+        }
         #screen_container {
             background: #000;
             border: 2px solid #333;
@@ -63,6 +81,11 @@
         <a href="https://github.com/tgies/astro">github.com/tgies/astro</a>
     </p>
 
+    <div class="mode-toggle">
+        <a id="mode-boot" href="?">Boot floppy</a>
+        <a id="mode-build" href="?mode=build">Build environment</a>
+    </div>
+
     <div id="screen_container">
         <div></div>
         <canvas></canvas>
@@ -81,6 +104,12 @@
     <script>
     "use strict";
 
+    const params = new URLSearchParams(location.search);
+    const buildMode = params.get("mode") === "build";
+
+    // Highlight active mode tab
+    document.getElementById(buildMode ? "mode-build" : "mode-boot").classList.add("active");
+
     const statusEl = document.getElementById("status");
 
     function setStatus(msg, isError) {
@@ -96,26 +125,46 @@
 
     async function boot() {
         try {
-            setStatus("Downloading BIOS and disk image...");
+            setStatus("Downloading BIOS" + (buildMode ? "..." : " and disk image..."));
 
-            const [bios, vgaBios, floppy] = await Promise.all([
+            const biosPromise = Promise.all([
                 fetchBinary("seabios.bin"),
                 fetchBinary("vgabios.bin"),
-                fetchBinary("dos6retail-boot.img"),
             ]);
 
-            setStatus("Booting MS-DOS 6...");
+            let diskConfig;
+            if (buildMode) {
+                // Build environment: 250MB HD image loaded on demand
+                const [bios, vgaBios] = await biosPromise;
+                setStatus("Booting MS-DOS 6 (build environment)...");
+                diskConfig = {
+                    wasm_path: "v86.wasm",
+                    memory_size: 16 * 1024 * 1024,
+                    vga_memory_size: 2 * 1024 * 1024,
+                    screen_container: document.getElementById("screen_container"),
+                    bios: { buffer: bios },
+                    vga_bios: { buffer: vgaBios },
+                    hda: { url: "dos6-build.img", async: true, size: DOS6_BUILD_IMG_SIZE },
+                    autostart: true,
+                };
+            } else {
+                // Boot floppy: small image loaded in full
+                const [bios, vgaBios] = await biosPromise;
+                const floppy = await fetchBinary("dos6retail-boot.img");
+                setStatus("Booting MS-DOS 6...");
+                diskConfig = {
+                    wasm_path: "v86.wasm",
+                    memory_size: 16 * 1024 * 1024,
+                    vga_memory_size: 2 * 1024 * 1024,
+                    screen_container: document.getElementById("screen_container"),
+                    bios: { buffer: bios },
+                    vga_bios: { buffer: vgaBios },
+                    fda: { buffer: floppy },
+                    autostart: true,
+                };
+            }
 
-            const emulator = new V86({
-                wasm_path: "v86.wasm",
-                memory_size: 16 * 1024 * 1024,
-                vga_memory_size: 2 * 1024 * 1024,
-                screen_container: document.getElementById("screen_container"),
-                bios: { buffer: bios },
-                vga_bios: { buffer: vgaBios },
-                fda: { buffer: floppy },
-                autostart: true,
-            });
+            const emulator = new V86(diskConfig);
 
             emulator.add_listener("emulator-ready", function() {
                 setStatus("Running. Click screen to type.");
