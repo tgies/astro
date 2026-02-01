@@ -97,9 +97,12 @@
         return resp.arrayBuffer();
     }
 
-    async function getLatestReleaseAssetUrl(repo, assetName) {
-        const resp = await fetch(`https://api.github.com/repos/${repo}/releases/latest`);
-        if (!resp.ok) throw new Error(`Failed to fetch releases for ${repo}`);
+    async function getReleaseAssetUrl(repo, tag, assetName) {
+        const url = tag
+            ? `https://api.github.com/repos/${repo}/releases/tags/${tag}`
+            : `https://api.github.com/repos/${repo}/releases/latest`;
+        const resp = await fetch(url);
+        if (!resp.ok) throw new Error(`Failed to fetch release for ${repo}: ${resp.status}`);
         const release = await resp.json();
         const asset = release.assets.find(a => a.name === assetName);
         if (!asset) throw new Error(`Asset ${assetName} not found in release ${release.tag_name}`);
@@ -112,9 +115,9 @@
 
             // Get URLs for v86 build files and our floppy image
             const [v86JsUrl, v86WasmUrl, floppyUrl] = await Promise.all([
-                getLatestReleaseAssetUrl(V86_REPO, "libv86.js"),
-                getLatestReleaseAssetUrl(V86_REPO, "v86.wasm"),
-                getLatestReleaseAssetUrl(REPO, "dos6retail-boot.img"),
+                getReleaseAssetUrl(V86_REPO, V86_TAG, "libv86.js"),
+                getReleaseAssetUrl(V86_REPO, V86_TAG, "v86.wasm"),
+                getReleaseAssetUrl(REPO, null, "dos6retail-boot.img"),
             ]);
 
             setStatus("Downloading v86 emulator...");
