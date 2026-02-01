@@ -1,0 +1,169 @@
+<!doctype html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <title>MS-DOS 6 — Built from Source</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            background: #1a1a2e;
+            color: #e0e0e0;
+            font-family: system-ui, -apple-system, sans-serif;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            min-height: 100vh;
+            padding: 2rem 1rem;
+        }
+        h1 {
+            font-size: 1.5rem;
+            margin-bottom: 0.25rem;
+            color: #fff;
+        }
+        .subtitle {
+            font-size: 0.9rem;
+            color: #888;
+            margin-bottom: 1.5rem;
+        }
+        .subtitle a { color: #6ea8d9; text-decoration: none; }
+        .subtitle a:hover { text-decoration: underline; }
+        #screen_container {
+            background: #000;
+            border: 2px solid #333;
+            border-radius: 4px;
+            overflow: hidden;
+            cursor: pointer;
+        }
+        #screen_container > div {
+            white-space: pre;
+            font: 14px monospace;
+            line-height: 14px;
+        }
+        #screen_container > canvas { display: none; }
+        #status {
+            margin-top: 1rem;
+            font-size: 0.85rem;
+            color: #888;
+        }
+        #status.error { color: #e74c3c; }
+        .info {
+            margin-top: 1.5rem;
+            font-size: 0.8rem;
+            color: #666;
+            text-align: center;
+            max-width: 640px;
+            line-height: 1.5;
+        }
+    </style>
+</head>
+<body>
+    <h1>MS-DOS 6.0</h1>
+    <p class="subtitle">
+        Built from source &mdash;
+        <a href="https://github.com/tgies/astro">github.com/tgies/astro</a>
+    </p>
+
+    <div id="screen_container">
+        <div></div>
+        <canvas></canvas>
+    </div>
+
+    <div id="status">Loading...</div>
+
+    <div class="info">
+        Click the screen to capture keyboard input. Press Escape to release.<br>
+        Powered by <a href="https://github.com/copy/v86" style="color: #6ea8d9;">v86</a>.
+        Boot image from the latest
+        <a href="https://github.com/tgies/astro/releases" style="color: #6ea8d9;">release</a>.
+    </div>
+
+    <script>
+    "use strict";
+
+    const REPO = "tgies/astro";
+    const V86_REPO = "copy/v86";
+    const V86_TAG = "latest";
+
+    const statusEl = document.getElementById("status");
+
+    function setStatus(msg, isError) {
+        statusEl.textContent = msg;
+        statusEl.className = isError ? "error" : "";
+    }
+
+    async function fetchBinary(url) {
+        const resp = await fetch(url);
+        if (!resp.ok) throw new Error(`Failed to fetch ${url}: ${resp.status}`);
+        return resp.arrayBuffer();
+    }
+
+    async function getLatestReleaseAssetUrl(repo, assetName) {
+        const resp = await fetch(`https://api.github.com/repos/${repo}/releases/latest`);
+        if (!resp.ok) throw new Error(`Failed to fetch releases for ${repo}`);
+        const release = await resp.json();
+        const asset = release.assets.find(a => a.name === assetName);
+        if (!asset) throw new Error(`Asset ${assetName} not found in release ${release.tag_name}`);
+        return asset.browser_download_url;
+    }
+
+    async function boot() {
+        try {
+            setStatus("Fetching release info...");
+
+            // Get URLs for v86 build files and our floppy image
+            const [v86JsUrl, v86WasmUrl, floppyUrl] = await Promise.all([
+                getLatestReleaseAssetUrl(V86_REPO, "libv86.js"),
+                getLatestReleaseAssetUrl(V86_REPO, "v86.wasm"),
+                getLatestReleaseAssetUrl(REPO, "dos6retail-boot.img"),
+            ]);
+
+            setStatus("Downloading v86 emulator...");
+
+            // Load v86 JS
+            await new Promise((resolve, reject) => {
+                const script = document.createElement("script");
+                script.src = v86JsUrl;
+                script.onload = resolve;
+                script.onerror = () => reject(new Error("Failed to load v86"));
+                document.head.appendChild(script);
+            });
+
+            setStatus("Downloading BIOS and disk image...");
+
+            // Fetch BIOS files and floppy image in parallel
+            const [bios, vgaBios, floppy] = await Promise.all([
+                fetchBinary("https://raw.githubusercontent.com/copy/v86/master/bios/seabios.bin"),
+                fetchBinary("https://raw.githubusercontent.com/copy/v86/master/bios/vgabios.bin"),
+                fetchBinary(floppyUrl),
+            ]);
+
+            setStatus("Booting MS-DOS 6...");
+
+            const emulator = new V86({
+                wasm_fn: async () => {
+                    const resp = await fetch(v86WasmUrl);
+                    return WebAssembly.compile(await resp.arrayBuffer());
+                },
+                memory_size: 16 * 1024 * 1024,
+                vga_memory_size: 2 * 1024 * 1024,
+                screen_container: document.getElementById("screen_container"),
+                bios: { buffer: bios },
+                vga_bios: { buffer: vgaBios },
+                fda: { buffer: floppy },
+                autostart: true,
+            });
+
+            emulator.add_listener("emulator-ready", function() {
+                setStatus("Running. Click screen to type.");
+            });
+
+        } catch (err) {
+            setStatus("Error: " + err.message, true);
+            console.error(err);
+        }
+    }
+
+    boot();
+    </script>
+</body>
+</html>
