@@ -26,4 +26,8 @@ c6ers/*/*.OUT
 c6ers/*/MAKE.OUT
 dos/DISKOBJS
 inc/bdsize.inc
-c6ers/tools6/tmp/*
+c6ers/tools6/tmp/*.build-env/
+.boot/
+.build-env/
+!bootstrap/
+!bootstrap/*
