@@ -68,7 +68,7 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          gh release download --pattern "dos6retail-boot.img" --pattern "dos6retail.raw.img" --dir _site/
+          gh release download --pattern "dos6retail-boot.img" --pattern "dos6retail-128m.raw.img" --dir _site/
 
       - name: Build source tree disk image
         run: |
@@ -77,7 +77,7 @@ jobs:
       - name: Copy site files and inject image sizes
         run: |
           BUILD_SIZE=$(stat -c%s _site/dos6-build.img)
-          INSTALL_SIZE=$(stat -c%s _site/dos6retail.raw.img)
+          INSTALL_SIZE=$(stat -c%s _site/dos6retail-128m.raw.img)
           sed "s/DOS6_BUILD_IMG_SIZE/${BUILD_SIZE}/;s/DOS6_INSTALL_IMG_SIZE/${INSTALL_SIZE}/" docs/index.html > _site/index.html
 
       - name: Upload Pages artifact

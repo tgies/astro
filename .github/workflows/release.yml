@@ -59,6 +59,12 @@ jobs:
       - name: Create OEM hard disk image
         run: timeout 300 ./mkhdimg.sh --oem
 
+      - name: Create 128MB retail hard disk image (v86-compatible geometry)
+        run: timeout 300 ./mkhdimg.sh --retail --size 128 -o dos6retail-128m.img
+
+      - name: Create 128MB OEM hard disk image (v86-compatible geometry)
+        run: timeout 300 ./mkhdimg.sh --oem --size 128 -o dos6oem-128m.img
+
       - name: Create retail boot floppy
         run: timeout 300 ./mkhdimg.sh --floppy --retail
 
@@ -95,6 +101,10 @@ jobs:
             dos6-compressed.zip \
             dos6retail.raw.img \
             dos6oem.raw.img \
+            dos6retail-128m.img \
+            dos6retail-128m.raw.img \
+            dos6oem-128m.img \
+            dos6oem-128m.raw.img \
             dos6retail-boot.img \
             dos6oem-boot.img \
             io.sys \
