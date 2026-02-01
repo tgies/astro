@@ -1,33 +1,117 @@
+# Build output directories
+binaries/
+compress/
+.build-env/
+.build-env-test/
+.boot/
+
+# Disk images
+*.img
+
+# Object files and build intermediates
 *.obj
 *.map
 *.res
 *.sym
+*.lst
+*.LST
+*.bak
+
+# Executables and compressed executables (uppercase and lowercase)
 *.com
 *.COM
+*.co_
 *.CO_
-*.OE_
+*.exe
 *.EXE
+*.ex_
 *.EX_
+*.exc
 *.EXC
+*.exs
 *.EXS
-*.LST
+*.oe_
+*.OE_
+
+# System files
+*.sys
+*.SYS
+*.sy_
+*.SY_
+
+# Help files
+*.hl_
+*.HL_
+
+# Windows 386 enhanced mode
 *.386
 *.38_
-*.HL_
-*.SYS
-*.SY_
+
+# Build message/linker intermediates
+*.cl[0-9a-z]
 *.CL*
+*.ctl
 *.CTL
+*.pkl
 *.PKL
-c6ers/*/*.exe
+
+# Compressed distribution files
+*.cp_
+*.ic_
+*.bi_
+*.bs_
+*.pr_
+
+# Build outputs in specific directories
+lib/**/*.lib
 c6ers/*/*.lib
+c6ers/*/*.exe
 c6ers/*/*.out
 c6ers/*/*.OUT
 c6ers/*/MAKE.OUT
+c6ers/tools6/tmp/*
 dos/DISKOBJS
+dos/diskobjs
+dos/*.bin
+bios/*.bin
+boot/*.bin
+messages/*.idx
+
+# Misc
+*.log
+
+# Specific build outputs that share extensions with source files
+cmd/diskcopy/diskcopy.skl
+cmd/fdisk/fdboot.bin
+dev/display/ega/ega.cpi
+dev/himem/himem.bin
+dev/printer/5202/5202.cpi
+
+# Generated .inc files (binary data dumps from build)
+boot/boot.inc
+cmd/fdisk/fdboot.inc
+dev/power/powermsg.inc
 inc/bdsize.inc
-c6ers/tools6/tmp/*.build-env/
-.boot/
-.build-env/
+
+# Generated message/source files from build
+c6ers/newcmds/deltree.msg
+c6ers/newcmds/move.msg
+c6ers/newcmds/toolib/src/messages.msg
+c6ers/newcmds/toolib/src/syserr.msg
+c6ers/newcmds/toolib/src/fcopytxt.h
+c6ers/interlnk/driver/msg.asm
+cmd/fdisk/fdiskm.c
+cmd/format/mir_main.asm
+cmd/sort/sortmes.asm
+dev/ramdrive/messages.asm
+dev/smartdrv/rtext.asm
+dev/smartdrv/text.asm
+
+# Prebuilt libraries included in source tree
+c6ers/interlnk/fxlib/fastlynx.lib
+c6ers/interlnk/paragon/lib/plibs.lib
+c6ers/newcmds/toolib/lib/stoolsr.lib
+
+# Preserve bootstrap directory
 !bootstrap/
 !bootstrap/*

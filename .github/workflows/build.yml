@@ -1,0 +1,57 @@
+name: Build MS-DOS 6
+
+on:
+  push:
+
+jobs:
+  build:
+    runs-on: ubuntu-24.04
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install dosemu2 and mtools
+        run: |
+          sudo add-apt-repository -y ppa:dosemu2/ppa
+          sudo apt-get update
+          sudo apt-get install -y dosemu2 mtools
+
+      - name: Build DOS 6
+        run: timeout 3600 ./mak.sh
+
+      - name: Create retail hard disk image
+        run: timeout 300 ./mkhdimg.sh --retail
+
+      - name: Create OEM hard disk image
+        run: timeout 300 ./mkhdimg.sh --oem
+
+      - name: Create retail boot floppy
+        run: timeout 300 ./mkhdimg.sh --floppy --retail
+
+      - name: Create OEM boot floppy
+        run: timeout 300 ./mkhdimg.sh --floppy --oem
+
+      - name: Upload binaries
+        uses: actions/upload-artifact@v4
+        with:
+          name: dos6-binaries
+          path: binaries/
+
+      - name: Upload compressed files
+        uses: actions/upload-artifact@v4
+        with:
+          name: dos6-compressed
+          path: compress/
+
+      - name: Upload disk images
+        uses: actions/upload-artifact@v4
+        with:
+          name: dos6-disk-images
+          path: |
+            dos6retail.img
+            dos6retail.raw.img
+            dos6oem.img
+            dos6oem.raw.img
+            dos6retail-boot.img
+            dos6oem-boot.img

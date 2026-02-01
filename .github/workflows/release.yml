@@ -1,0 +1,60 @@
+name: Release MS-DOS 6
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Release version (e.g. v1.0)'
+        required: true
+        type: string
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-24.04
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install dosemu2 and mtools
+        run: |
+          sudo add-apt-repository -y ppa:dosemu2/ppa
+          sudo apt-get update
+          sudo apt-get install -y dosemu2 mtools
+
+      - name: Build DOS 6
+        run: timeout 3600 ./mak.sh
+
+      - name: Create retail hard disk image
+        run: timeout 300 ./mkhdimg.sh --retail
+
+      - name: Create OEM hard disk image
+        run: timeout 300 ./mkhdimg.sh --oem
+
+      - name: Create retail boot floppy
+        run: timeout 300 ./mkhdimg.sh --floppy --retail
+
+      - name: Create OEM boot floppy
+        run: timeout 300 ./mkhdimg.sh --floppy --oem
+
+      - name: Package artifacts
+        run: |
+          cd binaries && zip -r ../dos6-binaries.zip . && cd ..
+          cd compress && zip -r ../dos6-compressed.zip . && cd ..
+
+      - name: Create GitHub Release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release create "${{ inputs.version }}" \
+            --title "MS-DOS 6 ${{ inputs.version }}" \
+            --generate-notes \
+            dos6-binaries.zip \
+            dos6-compressed.zip \
+            dos6retail.raw.img \
+            dos6oem.raw.img \
+            dos6retail-boot.img \
+            dos6oem-boot.img
