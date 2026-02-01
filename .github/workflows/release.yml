@@ -25,6 +25,31 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y dosemu2 mtools
 
+      - name: Download bootstrap files
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          if [ -f .bootstrap-release ]; then
+            tag="$(cat .bootstrap-release)"
+            echo "Downloading bootstrap files from release $tag..."
+            mkdir -p bootstrap
+            gh release download "$tag" \
+              --pattern "io.sys" --pattern "msdos.sys" --pattern "command.com" \
+              --dir bootstrap/
+            # mak.sh expects uppercase filenames
+            cd bootstrap
+            mv io.sys IO.SYS
+            mv msdos.sys MSDOS.SYS
+            mv command.com COMMAND.COM
+            cd ..
+            echo "Bootstrap files downloaded."
+          elif [ -f bootstrap/IO.SYS ]; then
+            echo "Using checked-in bootstrap files."
+          else
+            echo "ERROR: No .bootstrap-release file and no bootstrap/ directory."
+            exit 1
+          fi
+
       - name: Build DOS 6
         run: timeout 3600 ./mak.sh
 
@@ -44,6 +69,10 @@ jobs:
         run: |
           cd binaries && zip -r ../dos6-binaries.zip . && cd ..
           cd compress && zip -r ../dos6-compressed.zip . && cd ..
+          # Copy bootstrap files with lowercase names for release assets
+          cp binaries/io.sys io.sys
+          cp binaries/msdos.sys msdos.sys
+          cp binaries/command.com command.com
 
       - name: Set release version
         id: version
@@ -66,4 +95,7 @@ jobs:
             dos6retail.raw.img \
             dos6oem.raw.img \
             dos6retail-boot.img \
-            dos6oem-boot.img
+            dos6oem-boot.img \
+            io.sys \
+            msdos.sys \
+            command.com
